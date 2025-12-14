@@ -1,0 +1,10 @@
+#!/bin/bash
+
+ROOT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+HOOKS_DIR="${ROOT_DIR}/.git-hooks/commit-msg.d"
+
+for hook in "${HOOKS_DIR}"/*.sh; do
+    if [ -x "$hook" ]; then
+        "$hook" "$@" || exit $?
+    fi
+done
