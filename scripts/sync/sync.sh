@@ -83,6 +83,9 @@ while IFS= read -r target; do
   while IFS= read -r file; do
     echo "  - $file"
     
+    # 一時ディレクトリ内のパスも作成
+    mkdir -p "$(dirname "$TEMP_DIR/$file.new")"
+    
     # ダウンロード
     "$SCRIPT_DIR/download-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" > "$TEMP_DIR/$file.new"
     
