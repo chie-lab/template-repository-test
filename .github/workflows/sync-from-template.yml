@@ -21,7 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Sync files from template
+      - name: Install yq
         run: |
-          echo "同期処理の実装予定"
-          echo "Template: ${{ env.TEMPLATE_REPO }}@${{ env.TEMPLATE_BRANCH }}"
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Sync files from template
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== Starting sync process ==="
+          bash scripts/sync/sync.sh
+
