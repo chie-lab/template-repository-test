@@ -1,0 +1,27 @@
+name: Sync from Template
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 毎週月曜日 09:00 JST (00:00 UTC)
+    - cron: "0 0 * * 1"
+
+env:
+  TEMPLATE_REPO: chie-lab/template-repository-test
+  TEMPLATE_BRANCH: main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync files from template
+        run: |
+          echo "同期処理の実装予定"
+          echo "Template: ${{ env.TEMPLATE_REPO }}@${{ env.TEMPLATE_BRANCH }}"

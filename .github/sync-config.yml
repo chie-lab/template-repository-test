@@ -1,0 +1,7 @@
+sync_targets:
+  - path: .githooks
+    type: directory
+    delete_if_missing: true
+  - path: install-hooks.sh
+    type: file
+    delete_if_missing: false
