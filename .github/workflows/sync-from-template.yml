@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     # 毎週月曜日 09:00 JST (00:00 UTC)
-    - cron: '0 0 * * 1'
+    - cron: "0 0 * * 1"
 
 env:
   TEMPLATE_REPO: chie-lab/template-repository-test
