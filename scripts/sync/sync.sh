@@ -46,7 +46,7 @@ fi
 # 設定ファイルの解析
 echo ""
 echo "=== Sync Targets ==="
-SYNC_TARGETS=$(yq eval '.sync_targets[] | .path' "$CONFIG_FILE")
+SYNC_TARGETS=$(/usr/local/bin/yq eval '.sync_targets[] | .path' "$CONFIG_FILE")
 
 if [[ -z "$SYNC_TARGETS" ]]; then
   echo "No sync targets found in config"
@@ -65,9 +65,9 @@ TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 while IFS= read -r target; do
-  path=$(yq eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
-  type=$(yq eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
-  delete_if_missing=$(yq eval ".sync_targets[] | select(.path == \"$target\") | .delete_if_missing" "$CONFIG_FILE")
+  path=$(/usr/local/bin/yq eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
+  type=$(/usr/local/bin/yq eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
+  delete_if_missing=$(/usr/local/bin/yq eval ".sync_targets[] | select(.path == \"$target\") | .delete_if_missing" "$CONFIG_FILE")
   
   echo "Processing: $path (type: $type)"
   
