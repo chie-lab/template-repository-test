@@ -56,8 +56,57 @@ fi
 echo "$SYNC_TARGETS"
 echo ""
 
-# TODO: GitHub APIでファイル取得
-# TODO: ファイルの反映
-# TODO: 変更検知
+# スクリプトのディレクトリ
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 同期対象を処理
+CHANGED=false
+TEMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TEMP_DIR"' EXIT
+
+while IFS= read -r target; do
+  path=$(yq eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
+  type=$(yq eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
+  delete_if_missing=$(yq eval ".sync_targets[] | select(.path == \"$target\") | .delete_if_missing" "$CONFIG_FILE")
+  
+  echo "Processing: $path (type: $type)"
+  
+  # ファイルリストを取得
+  files=$("$SCRIPT_DIR/fetch-files.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$path" "$type" "$delete_if_missing")
+  
+  if [[ -z "$files" ]]; then
+    echo "  No files found"
+    continue
+  fi
+  
+  # 各ファイルをダウンロードして比較
+  while IFS= read -r file; do
+    echo "  - $file"
+    
+    # ダウンロード
+    "$SCRIPT_DIR/download-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" > "$TEMP_DIR/$file.new"
+    
+    # ディレクトリを作成
+    mkdir -p "$(dirname "$file")"
+    
+    # 変更チェック
+    if [[ ! -f "$file" ]] || ! diff -q "$file" "$TEMP_DIR/$file.new" > /dev/null 2>&1; then
+      cp "$TEMP_DIR/$file.new" "$file"
+      CHANGED=true
+      echo "    Updated"
+    else
+      echo "    No changes"
+    fi
+  done <<< "$files"
+  
+done <<< "$SYNC_TARGETS"
+
+if [[ "$CHANGED" == "true" ]]; then
+  echo ""
+  echo "Files have been updated"
+else
+  echo ""
+  echo "No changes detected"
+fi
 
 echo "Sync process completed successfully"
