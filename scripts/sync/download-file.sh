@@ -21,6 +21,6 @@ fi
 # ファイルの内容を取得
 API_URL="https://api.github.com/repos/$REPO/contents/$FILE_PATH?ref=$REF"
 
-curl -s -H "Authorization: token $GITHUB_TOKEN" \
+/usr/bin/curl -s -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3.raw" \
   "$API_URL"

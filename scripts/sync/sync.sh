@@ -27,7 +27,7 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "Fetching config from template..."
   CONFIG_URL="https://api.github.com/repos/$TEMPLATE_REPO/contents/.github/sync-config.yml?ref=$TEMPLATE_BRANCH"
   
-  CONFIG_CONTENT=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+  CONFIG_CONTENT=$(/usr/bin/curl -s -H "Authorization: token $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github.v3.raw" \
     "$CONFIG_URL")
   
