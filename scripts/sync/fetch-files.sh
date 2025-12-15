@@ -37,16 +37,16 @@ fetch_directory() {
   
   content=$(fetch_content "$path")
   
-  if [[ -z "$content" ]] || echo "$content" | grep -q "\"message\""; then
+  if [[ -z "$content" ]] || echo "$content" | /usr/bin/grep -q "\"message\""; then
     echo "Error: Failed to fetch directory: $path" >&2
     return 1
   fi
   
-  echo "$content" | jq -r '.[] | select(.type == "file") | .path'
+  echo "$content" | /usr/bin/jq -r '.[] | select(.type == "file") | .path'
   
   # サブディレクトリを再帰的に処理
   local subdirs
-  subdirs=$(echo "$content" | jq -r '.[] | select(.type == "dir") | .path')
+  subdirs=$(echo "$content" | /usr/bin/jq -r '.[] | select(.type == "dir") | .path')
   
   for subdir in $subdirs; do
     fetch_directory "$subdir"
