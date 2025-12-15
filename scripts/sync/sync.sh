@@ -23,13 +23,39 @@ echo ""
 # 設定ファイルの読み込み
 CONFIG_FILE=".github/sync-config.override.yml"
 if [[ ! -f "$CONFIG_FILE" ]]; then
-  CONFIG_FILE=".github/sync-config.yml"
-  echo "Using template config: $CONFIG_FILE"
+  # オーバーライドファイルがない場合、テンプレートから取得
+  echo "Fetching config from template..."
+  CONFIG_URL="https://api.github.com/repos/$TEMPLATE_REPO/contents/.github/sync-config.yml?ref=$TEMPLATE_BRANCH"
+  
+  CONFIG_CONTENT=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github.v3.raw" \
+    "$CONFIG_URL")
+  
+  if [[ $? -ne 0 ]] || [[ -z "$CONFIG_CONTENT" ]]; then
+    echo "Error: Failed to fetch config from template"
+    exit 1
+  fi
+  
+  echo "$CONFIG_CONTENT" > /tmp/sync-config.yml
+  CONFIG_FILE="/tmp/sync-config.yml"
+  echo "Using template config"
 else
   echo "Using override config: $CONFIG_FILE"
 fi
 
-# TODO: 設定ファイルの解析
+# 設定ファイルの解析
+echo ""
+echo "=== Sync Targets ==="
+SYNC_TARGETS=$(yq eval '.sync_targets[] | .path' "$CONFIG_FILE")
+
+if [[ -z "$SYNC_TARGETS" ]]; then
+  echo "No sync targets found in config"
+  exit 0
+fi
+
+echo "$SYNC_TARGETS"
+echo ""
+
 # TODO: GitHub APIでファイル取得
 # TODO: ファイルの反映
 # TODO: 変更検知
