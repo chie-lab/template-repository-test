@@ -25,7 +25,7 @@ fetch_content() {
   local path="$1"
   local api_url="https://api.github.com/repos/$REPO/contents/$path?ref=$REF"
   
-  curl -s -H "Authorization: token $GITHUB_TOKEN" \
+  /usr/bin/curl -s -H "Authorization: token $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github.v3+json" \
     "$api_url"
 }
