@@ -7,7 +7,7 @@ source "$SCRIPT_DIR/constants.sh"
 
 # 引数チェック
 if [[ $# -lt 4 ]]; then
-  echo "Usage: $0 <repo> <ref> <path> <type> [delete_if_missing]"
+  echo "Usage: $0 <repo> <ref> <path> <type>" >&2
   exit 1
 fi
 
@@ -15,7 +15,6 @@ REPO="$1"
 REF="$2"
 PATH="$3"
 TYPE="$4"
-DELETE_IF_MISSING="${5:-false}"
 
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
