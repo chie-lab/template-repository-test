@@ -1,123 +1,25 @@
 #!/bin/bash
 set -euo pipefail
 
-# 環境変数の確認
-TEMPLATE_REPO="${TEMPLATE_REPO:-}"
-TEMPLATE_BRANCH="${TEMPLATE_BRANCH:-main}"
-GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-
-if [[ -z "$TEMPLATE_REPO" ]]; then
-  echo "Error: TEMPLATE_REPO is not set"
-  exit 1
-fi
-
-if [[ -z "$GITHUB_TOKEN" ]]; then
-  echo "Error: GITHUB_TOKEN is not set"
-  exit 1
-fi
-
-echo "=== Template Sync Script ==="
-echo "Template: $TEMPLATE_REPO@$TEMPLATE_BRANCH"
-echo ""
-
-# 設定ファイルの読み込み
-CONFIG_FILE=".github/sync-config.override.yml"
-if [[ ! -f "$CONFIG_FILE" ]]; then
-  # オーバーライドファイルがない場合、テンプレートから取得
-  echo "Fetching config from template..."
-  CONFIG_URL="https://api.github.com/repos/$TEMPLATE_REPO/contents/.github/sync-config.yml?ref=$TEMPLATE_BRANCH"
-  
-  CONFIG_CONTENT=$(/usr/bin/curl -s -H "Authorization: token $GITHUB_TOKEN" \
-    -H "Accept: application/vnd.github.v3.raw" \
-    "$CONFIG_URL")
-  
-  if [[ $? -ne 0 ]] || [[ -z "$CONFIG_CONTENT" ]]; then
-    echo "Error: Failed to fetch config from template"
-    exit 1
-  fi
-  
-  echo "$CONFIG_CONTENT" > /tmp/sync-config.yml
-  CONFIG_FILE="/tmp/sync-config.yml"
-  echo "Using template config"
-else
-  echo "Using override config: $CONFIG_FILE"
-fi
-
-# 設定ファイルの解析
-echo ""
-echo "=== Sync Targets ==="
-SYNC_TARGETS=$(/usr/local/bin/yq eval '.sync_targets[] | .path' "$CONFIG_FILE")
-
-if [[ -z "$SYNC_TARGETS" ]]; then
-  echo "No sync targets found in config"
-  exit 0
-fi
-
-echo "$SYNC_TARGETS"
-echo ""
-
 # スクリプトのディレクトリ
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 同期対象を処理
-CHANGED=false
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
+# 環境変数の検証
+source "$SCRIPT_DIR/validate-env.sh"
 
-while IFS= read -r target; do
-  path=$(/usr/local/bin/yq eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
-  type=$(/usr/local/bin/yq eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
-  delete_if_missing=$(/usr/local/bin/yq eval ".sync_targets[] | select(.path == \"$target\") | .delete_if_missing" "$CONFIG_FILE")
-  
-  echo "Processing: $path (type: $type)"
-  
-  # ファイルリストを取得
-  files=$("$SCRIPT_DIR/fetch-files.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$path" "$type" "$delete_if_missing")
-  
-  if [[ -z "$files" ]]; then
-    echo "  No files found"
-    continue
-  fi
-  
-  # 各ファイルをSHA比較してダウンロード
-  while IFS=$'\t' read -r file template_sha; do
-    echo "  - $file"
-    
-    # ローカルファイルのSHAを計算（gitのハッシュ形式）
-    local_sha=""
-    if [[ -f "$file" ]]; then
-      # git hash-objectと同じ形式でSHAを計算
-      local_sha=$(git hash-object "$file" 2>/dev/null || echo "")
-    fi
-    
-    # SHA比較
-    if [[ "$local_sha" == "$template_sha" ]]; then
-      echo "    No changes (SHA match)"
-      continue
-    fi
-    
-    # SHAが異なる場合のみダウンロード
-    mkdir -p "$(dirname "$TEMP_DIR/$file.new")"
-    "$SCRIPT_DIR/download-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" > "$TEMP_DIR/$file.new"
-    
-    # ディレクトリを作成
-    mkdir -p "$(dirname "$file")"
-    
-    # ファイルをコピー
-    cp "$TEMP_DIR/$file.new" "$file"
-    CHANGED=true
-    echo "    Updated"
-    
-  done <<< "$files"
-  
-done <<< "$SYNC_TARGETS"
+# 設定ファイルの読み込み
+echo "Loading config..."
+CONFIG_FILE=$("$SCRIPT_DIR/load-config.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH")
 
-if [[ "$CHANGED" == "true" ]]; then
-  echo ""
-  echo "Files have been updated"
-else
-  echo ""
-  echo "No changes detected"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  echo "Error: Config file not found"
+  exit 1
 fi
+
+echo "Using config: $CONFIG_FILE"
+echo ""
+
+# 同期対象を処理
+"$SCRIPT_DIR/process-targets.sh" "$SCRIPT_DIR" "$CONFIG_FILE" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH"
 
 echo "Sync process completed successfully"
