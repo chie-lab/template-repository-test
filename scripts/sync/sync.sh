@@ -79,27 +79,35 @@ while IFS= read -r target; do
     continue
   fi
   
-  # 各ファイルをダウンロードして比較
-  while IFS= read -r file; do
+  # 各ファイルをSHA比較してダウンロード
+  while IFS=$'\t' read -r file template_sha; do
     echo "  - $file"
     
-    # 一時ディレクトリ内のパスも作成
-    mkdir -p "$(dirname "$TEMP_DIR/$file.new")"
+    # ローカルファイルのSHAを計算（gitのハッシュ形式）
+    local_sha=""
+    if [[ -f "$file" ]]; then
+      # git hash-objectと同じ形式でSHAを計算
+      local_sha=$(git hash-object "$file" 2>/dev/null || echo "")
+    fi
     
-    # ダウンロード
+    # SHA比較
+    if [[ "$local_sha" == "$template_sha" ]]; then
+      echo "    No changes (SHA match)"
+      continue
+    fi
+    
+    # SHAが異なる場合のみダウンロード
+    mkdir -p "$(dirname "$TEMP_DIR/$file.new")"
     "$SCRIPT_DIR/download-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" > "$TEMP_DIR/$file.new"
     
     # ディレクトリを作成
     mkdir -p "$(dirname "$file")"
     
-    # 変更チェック
-    if [[ ! -f "$file" ]] || ! diff -q "$file" "$TEMP_DIR/$file.new" > /dev/null 2>&1; then
-      cp "$TEMP_DIR/$file.new" "$file"
-      CHANGED=true
-      echo "    Updated"
-    else
-      echo "    No changes"
-    fi
+    # ファイルをコピー
+    cp "$TEMP_DIR/$file.new" "$file"
+    CHANGED=true
+    echo "    Updated"
+    
   done <<< "$files"
   
 done <<< "$SYNC_TARGETS"

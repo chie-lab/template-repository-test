@@ -42,7 +42,8 @@ fetch_directory() {
     return 1
   fi
   
-  echo "$content" | /usr/bin/jq -r '.[] | select(.type == "file") | .path'
+  # ファイルのパスとSHAを出力（タブ区切り）
+  echo "$content" | /usr/bin/jq -r '.[] | select(.type == "file") | "\(.path)\t\(.sha)"'
   
   # サブディレクトリを再帰的に処理
   local subdirs
@@ -57,7 +58,14 @@ fetch_directory() {
 if [[ "$TYPE" == "directory" ]]; then
   fetch_directory "$PATH"
 elif [[ "$TYPE" == "file" ]]; then
-  echo "$PATH"
+  # 単一ファイルの場合もSHA情報を取得
+  content=$(fetch_content "$PATH")
+  if [[ -z "$content" ]] || echo "$content" | /usr/bin/grep -q "\"message\""; then
+    echo "Error: Failed to fetch file: $PATH" >&2
+    exit 1
+  fi
+  sha=$(echo "$content" | /usr/bin/jq -r '.sha')
+  echo "$PATH	$sha"
 else
   echo "Error: Invalid type: $TYPE" >&2
   exit 1
