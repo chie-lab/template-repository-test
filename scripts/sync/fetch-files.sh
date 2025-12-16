@@ -59,12 +59,12 @@ fetch_directory() {
 }
 
 # メイン処理
-if [[ "$TYPE" == "directory" ]]; then
+if [[ "$TYPE" == "$TYPE_DIRECTORY" ]]; then
   fetch_directory "$PATH"
-elif [[ "$TYPE" == "file" ]]; then
+elif [[ "$TYPE" == "$TYPE_FILE" ]]; then
   # 単一ファイルの場合もSHA情報を取得
   content=$(fetch_content "$PATH")
-  if [[ -z "$content" ]] || echo "$content" | $GREP_CMD -q "\"message\""; then
+  if [[ -z "$content" ]] || echo "$content" | $GREP_CMD -q '"message"'; then
     echo "Error: Failed to fetch file: $PATH" >&2
     exit 1
   fi

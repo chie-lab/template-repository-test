@@ -21,7 +21,7 @@ fi
 
 # SHA比較
 if [[ "$LOCAL_SHA" == "$TEMPLATE_SHA" ]]; then
-  echo "no-change"
+  echo "$SYNC_RESULT_NO_CHANGE"
   exit 0
 fi
 
@@ -38,4 +38,4 @@ mkdir -p "$(dirname "$FILE_PATH")"
 # ファイルをコピー
 cp "$TEMP_DIR/$FILE_PATH.new" "$FILE_PATH"
 
-echo "updated"
+echo "$SYNC_RESULT_UPDATED"

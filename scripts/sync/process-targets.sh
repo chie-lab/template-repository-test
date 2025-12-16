@@ -44,7 +44,7 @@ sync_files() {
     
     result=$("$SCRIPT_DIR/sync-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" "$template_sha" "$SCRIPT_DIR")
     
-    if [[ "$result" == "updated" ]]; then
+    if [[ "$result" == "$SYNC_RESULT_UPDATED" ]]; then
       CHANGED=true
       echo "    Updated"
     else
