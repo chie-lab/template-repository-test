@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+# 定数
+readonly YQ_CMD="/usr/local/bin/yq"
+
 # 引数
 SCRIPT_DIR="$1"
 CONFIG_FILE="$2"
@@ -8,7 +11,7 @@ TEMPLATE_REPO="$3"
 TEMPLATE_BRANCH="$4"
 
 # 同期対象を解析
-SYNC_TARGETS=$(/usr/local/bin/yq eval '.sync_targets[] | .path' "$CONFIG_FILE")
+SYNC_TARGETS=$($YQ_CMD eval '.sync_targets[] | .path' "$CONFIG_FILE")
 
 if [[ -z "$SYNC_TARGETS" ]]; then
   echo "No sync targets found in config"
@@ -24,8 +27,8 @@ CHANGED=false
 
 # 各ターゲットを処理
 while IFS= read -r target; do
-  path=$(/usr/local/bin/yq eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
-  type=$(/usr/local/bin/yq eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
+  path=$($YQ_CMD eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
+  type=$($YQ_CMD eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
   
   echo "Processing: $path (type: $type)"
   
