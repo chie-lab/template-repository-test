@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+# 共通定数の読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/constants.sh"
+
 # 引数チェック
 if [[ $# -lt 2 ]]; then
   echo "Usage: $0 <template_repo> <template_branch>" >&2
@@ -22,11 +26,11 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   # オーバーライドファイルがない場合、テンプレートから取得
   CONFIG_URL="https://api.github.com/repos/$TEMPLATE_REPO/contents/.github/sync-config.yml?ref=$TEMPLATE_BRANCH"
   
-  CONFIG_CONTENT=$(/usr/bin/curl -s -H "Authorization: token $GITHUB_TOKEN" \
+  CONFIG_CONTENT=$($CURL_CMD -s -H "Authorization: token $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github.v3.raw" \
     "$CONFIG_URL")
   
-  if [[ $? -ne 0 ]] || [[ -z "$CONFIG_CONTENT" ]]; then
+  if [[ -z "$CONFIG_CONTENT" ]]; then
     echo "Error: Failed to fetch config from template" >&2
     exit 1
   fi

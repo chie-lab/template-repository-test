@@ -1,8 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# 定数
-readonly YQ_CMD="/usr/local/bin/yq"
+# 共通定数の読み込み
+SCRIPT_DIR_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR_SELF/constants.sh"
 
 # 引数
 SCRIPT_DIR="$1"

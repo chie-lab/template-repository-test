@@ -1,10 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# 定数
-readonly CURL_CMD="/usr/bin/curl"
-readonly GREP_CMD="/usr/bin/grep"
-readonly JQ_CMD="/usr/bin/jq"
+# 共通定数の読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/constants.sh"
 
 # 引数チェック
 if [[ $# -lt 4 ]]; then

@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+# 共通定数の読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/constants.sh"
+
 # 引数チェック
 if [[ $# -lt 3 ]]; then
   echo "Usage: $0 <repo> <ref> <file_path>"
@@ -21,6 +25,6 @@ fi
 # ファイルの内容を取得
 API_URL="https://api.github.com/repos/$REPO/contents/$FILE_PATH?ref=$REF"
 
-/usr/bin/curl -s -H "Authorization: token $GITHUB_TOKEN" \
+$CURL_CMD -s -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3.raw" \
   "$API_URL"
