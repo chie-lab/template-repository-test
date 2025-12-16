@@ -10,13 +10,12 @@ CONFIG_FILE="$1"
 TEMPLATE_REPO="$2"
 TEMPLATE_BRANCH="$3"
 
-# 変更フラグ
-CHANGED=false
-
 # 単一ターゲットの処理
+# 戻り値: 0=変更あり, 1=変更なし
 process_single_target() {
   local target="$1"
   local path type files
+  local has_changes=1
   
   path=$($YQ_CMD eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
   type=$($YQ_CMD eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
@@ -27,16 +26,22 @@ process_single_target() {
   
   if [[ -z "$files" ]]; then
     echo "  No files found"
-    return
+    return 1
   fi
   
-  sync_files "$files"
+  if sync_files "$files"; then
+    has_changes=0
+  fi
+  
+  return $has_changes
 }
 
 # ファイルリストの同期
+# 戻り値: 0=変更あり, 1=変更なし
 sync_files() {
   local files="$1"
   local file template_sha result
+  local has_changes=1
   
   while IFS=$'\t' read -r file template_sha; do
     echo "  - $file"
@@ -44,12 +49,14 @@ sync_files() {
     result=$("$SCRIPT_DIR/sync-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" "$template_sha")
     
     if [[ "$result" == "$SYNC_RESULT_UPDATED" ]]; then
-      CHANGED=true
+      has_changes=0
       echo "    Updated"
     else
       echo "    No changes (SHA match)"
     fi
   done <<< "$files"
+  
+  return $has_changes
 }
 
 # 同期対象を解析
@@ -65,13 +72,16 @@ echo "$SYNC_TARGETS"
 echo ""
 
 # 各ターゲットを処理
+HAS_CHANGES=false
 while IFS= read -r target; do
-  process_single_target "$target"
+  if process_single_target "$target"; then
+    HAS_CHANGES=true
+  fi
 done <<< "$SYNC_TARGETS"
 
 # 結果を出力
 echo ""
-if [[ "$CHANGED" == "true" ]]; then
+if [[ "$HAS_CHANGES" == "true" ]]; then
   echo "Files have been updated"
 else
   echo "No changes detected"
