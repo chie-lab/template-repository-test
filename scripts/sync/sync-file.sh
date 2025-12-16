@@ -1,9 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
+# 共通定数の読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/constants.sh"
+
 # 引数チェック
-if [[ $# -lt 5 ]]; then
-  echo "Usage: $0 <template_repo> <template_branch> <file_path> <template_sha> <script_dir>" >&2
+if [[ $# -lt 4 ]]; then
+  echo "Usage: $0 <template_repo> <template_branch> <file_path> <template_sha>" >&2
   exit 1
 fi
 
@@ -11,7 +15,6 @@ TEMPLATE_REPO="$1"
 TEMPLATE_BRANCH="$2"
 FILE_PATH="$3"
 TEMPLATE_SHA="$4"
-SCRIPT_DIR="$5"
 
 # ローカルファイルのSHAを計算
 LOCAL_SHA=""

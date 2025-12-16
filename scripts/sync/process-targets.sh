@@ -2,14 +2,13 @@
 set -euo pipefail
 
 # 共通定数の読み込み
-SCRIPT_DIR_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR_SELF/constants.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/constants.sh"
 
 # 引数
-SCRIPT_DIR="$1"
-CONFIG_FILE="$2"
-TEMPLATE_REPO="$3"
-TEMPLATE_BRANCH="$4"
+TEMPLATE_REPO="$2"
+TEMPLATE_BRANCH="$3"
+CONFIG_FILE="$1"
 
 # 変更フラグ
 CHANGED=false
@@ -42,7 +41,7 @@ sync_files() {
   while IFS=$'\t' read -r file template_sha; do
     echo "  - $file"
     
-    result=$("$SCRIPT_DIR/sync-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" "$template_sha" "$SCRIPT_DIR")
+    result=$("$SCRIPT_DIR/sync-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" "$template_sha")
     
     if [[ "$result" == "$SYNC_RESULT_UPDATED" ]]; then
       CHANGED=true

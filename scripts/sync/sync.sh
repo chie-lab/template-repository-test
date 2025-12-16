@@ -20,6 +20,6 @@ echo "Using config: $CONFIG_FILE"
 echo ""
 
 # 同期対象を処理
-"$SCRIPT_DIR/process-targets.sh" "$SCRIPT_DIR" "$CONFIG_FILE" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH"
+"$SCRIPT_DIR/process-targets.sh" "$CONFIG_FILE" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH"
 
 echo "Sync process completed successfully"
