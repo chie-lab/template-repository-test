@@ -25,6 +25,25 @@ fi
 # ファイルの内容を取得
 API_URL="https://api.github.com/repos/$REPO/contents/$FILE_PATH?ref=$REF"
 
-$CURL_CMD -s -H "Authorization: token $GITHUB_TOKEN" \
+RESPONSE=$($CURL_CMD -s -w "\n%{http_code}" -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3.raw" \
-  "$API_URL"
+  "$API_URL")
+
+# HTTPステータスコードを取得（最終行）
+HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+# レスポンスボディ（最終行以外）
+CONTENT=$(echo "$RESPONSE" | head -n -1)
+
+# ステータスコードチェック
+if [[ "$HTTP_CODE" != "200" ]]; then
+  echo "Error: Failed to download file: $FILE_PATH (HTTP $HTTP_CODE)" >&2
+  exit 1
+fi
+
+# コンテンツが空でないことを確認
+if [[ -z "$CONTENT" ]]; then
+  echo "Error: Downloaded file is empty: $FILE_PATH" >&2
+  exit 1
+fi
+
+echo "$CONTENT"

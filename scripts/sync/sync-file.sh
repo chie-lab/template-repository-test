@@ -33,7 +33,18 @@ TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 mkdir -p "$(dirname "$TEMP_DIR/$FILE_PATH.new")"
-"$SCRIPT_DIR/download-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$FILE_PATH" > "$TEMP_DIR/$FILE_PATH.new"
+
+# ファイルをダウンロード
+if ! "$SCRIPT_DIR/download-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$FILE_PATH" > "$TEMP_DIR/$FILE_PATH.new"; then
+  echo "Error: Failed to download file: $FILE_PATH" >&2
+  exit 1
+fi
+
+# ダウンロードしたファイルが空でないことを確認
+if [[ ! -s "$TEMP_DIR/$FILE_PATH.new" ]]; then
+  echo "Error: Downloaded file is empty: $FILE_PATH" >&2
+  exit 1
+fi
 
 # ディレクトリを作成
 mkdir -p "$(dirname "$FILE_PATH")"

@@ -6,9 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/constants.sh"
 
 # 引数
+CONFIG_FILE="$1"
 TEMPLATE_REPO="$2"
 TEMPLATE_BRANCH="$3"
-CONFIG_FILE="$1"
 
 # 変更フラグ
 CHANGED=false
