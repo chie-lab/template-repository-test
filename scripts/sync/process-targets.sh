@@ -10,6 +10,48 @@ CONFIG_FILE="$2"
 TEMPLATE_REPO="$3"
 TEMPLATE_BRANCH="$4"
 
+# 変更フラグ
+CHANGED=false
+
+# 単一ターゲットの処理
+process_single_target() {
+  local target="$1"
+  local path type files
+  
+  path=$($YQ_CMD eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
+  type=$($YQ_CMD eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
+  
+  echo "Processing: $path (type: $type)"
+  
+  files=$("$SCRIPT_DIR/fetch-files.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$path" "$type")
+  
+  if [[ -z "$files" ]]; then
+    echo "  No files found"
+    return
+  fi
+  
+  sync_files "$files"
+}
+
+# ファイルリストの同期
+sync_files() {
+  local files="$1"
+  local file template_sha result
+  
+  while IFS=$'\t' read -r file template_sha; do
+    echo "  - $file"
+    
+    result=$("$SCRIPT_DIR/sync-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" "$template_sha" "$SCRIPT_DIR")
+    
+    if [[ "$result" == "updated" ]]; then
+      CHANGED=true
+      echo "    Updated"
+    else
+      echo "    No changes (SHA match)"
+    fi
+  done <<< "$files"
+}
+
 # 同期対象を解析
 SYNC_TARGETS=$($YQ_CMD eval '.sync_targets[] | .path' "$CONFIG_FILE")
 
@@ -22,39 +64,9 @@ echo "=== Sync Targets ==="
 echo "$SYNC_TARGETS"
 echo ""
 
-# 変更フラグ
-CHANGED=false
-
 # 各ターゲットを処理
 while IFS= read -r target; do
-  path=$($YQ_CMD eval ".sync_targets[] | select(.path == \"$target\") | .path" "$CONFIG_FILE")
-  type=$($YQ_CMD eval ".sync_targets[] | select(.path == \"$target\") | .type" "$CONFIG_FILE")
-  
-  echo "Processing: $path (type: $type)"
-  
-  # ファイルリストを取得
-  files=$("$SCRIPT_DIR/fetch-files.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$path" "$type")
-  
-  if [[ -z "$files" ]]; then
-    echo "  No files found"
-    continue
-  fi
-  
-  # 各ファイルを同期
-  while IFS=$'\t' read -r file template_sha; do
-    echo "  - $file"
-    
-    result=$("$SCRIPT_DIR/sync-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" "$template_sha" "$SCRIPT_DIR")
-    
-    if [[ "$result" == "updated" ]]; then
-      CHANGED=true
-      echo "    Updated"
-    else
-      echo "    No changes (SHA match)"
-    fi
-    
-  done <<< "$files"
-  
+  process_single_target "$target"
 done <<< "$SYNC_TARGETS"
 
 # 結果を出力
