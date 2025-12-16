@@ -11,7 +11,7 @@ TEMPLATE_REPO="$2"
 TEMPLATE_BRANCH="$3"
 
 # 単一ターゲットの処理
-# 戻り値: 0=変更あり, 1=変更なし
+# 戻り値: 0=変更あり, 1=変更なし, 2=エラー
 process_single_target() {
   local target="$1"
   local path type files
@@ -22,14 +22,23 @@ process_single_target() {
   
   echo "Processing: $path (type: $type)"
   
-  files=$("$SCRIPT_DIR/fetch-files.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$path" "$type")
+  if ! files=$("$SCRIPT_DIR/fetch-files.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$path" "$type"); then
+    echo "  Error: Failed to fetch files" >&2
+    return 2
+  fi
   
   if [[ -z "$files" ]]; then
     echo "  No files found"
     return 1
   fi
   
-  if sync_files "$files"; then
+  if ! sync_files "$files"; then
+    local sync_result=$?
+    if [[ $sync_result -eq 2 ]]; then
+      return 2
+    fi
+    has_changes=1
+  else
     has_changes=0
   fi
   
@@ -37,7 +46,7 @@ process_single_target() {
 }
 
 # ファイルリストの同期
-# 戻り値: 0=変更あり, 1=変更なし
+# 戻り値: 0=変更あり, 1=変更なし, 2=エラー
 sync_files() {
   local files="$1"
   local file template_sha result
@@ -46,7 +55,10 @@ sync_files() {
   while IFS=$'\t' read -r file template_sha; do
     echo "  - $file"
     
-    result=$("$SCRIPT_DIR/sync-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" "$template_sha")
+    if ! result=$("$SCRIPT_DIR/sync-file.sh" "$TEMPLATE_REPO" "$TEMPLATE_BRANCH" "$file" "$template_sha"); then
+      echo "    Error: Failed to sync file" >&2
+      return 2
+    fi
     
     if [[ "$result" == "$SYNC_RESULT_UPDATED" ]]; then
       has_changes=0
@@ -74,7 +86,14 @@ echo ""
 # 各ターゲットを処理
 HAS_CHANGES=false
 while IFS= read -r target; do
-  if process_single_target "$target"; then
+  process_result=0
+  if ! process_single_target "$target"; then
+    process_result=$?
+    if [[ $process_result -eq 2 ]]; then
+      echo "Error: Failed to process target: $target" >&2
+      exit 1
+    fi
+  else
     HAS_CHANGES=true
   fi
 done <<< "$SYNC_TARGETS"
