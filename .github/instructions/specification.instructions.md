@@ -26,7 +26,7 @@ applyTo: "**"
 
 ```yaml
 sync_targets:
-  - path: .githooks
+  - path: .git-hooks
     type: directory
     delete_if_missing: true
   - path: install-hooks.sh
@@ -54,7 +54,7 @@ sync_targets:
 
 現在の同期対象（初期値）：
 
-- `.githooks/**`（ディレクトリ、削除検知あり）
+- `.git-hooks/**`（ディレクトリ、削除検知あり）
 - `install-hooks.sh`（ファイル、削除検知なし）
 
 ※ hooks の中身の仕様そのものは、すでに実装済みのものを利用する前提とする（ここでは仕様定義はしない）。
