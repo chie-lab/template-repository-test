@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+# 定数
+readonly CURL_CMD="/usr/bin/curl"
+readonly GREP_CMD="/usr/bin/grep"
+readonly JQ_CMD="/usr/bin/jq"
+
 # 引数チェック
 if [[ $# -lt 4 ]]; then
   echo "Usage: $0 <repo> <ref> <path> <type> [delete_if_missing]"
@@ -25,7 +30,7 @@ fetch_content() {
   local path="$1"
   local api_url="https://api.github.com/repos/$REPO/contents/$path?ref=$REF"
   
-  /usr/bin/curl -s -H "Authorization: token $GITHUB_TOKEN" \
+  $CURL_CMD -s -H "Authorization: token $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github.v3+json" \
     "$api_url"
 }
@@ -37,17 +42,17 @@ fetch_directory() {
   
   content=$(fetch_content "$path")
   
-  if [[ -z "$content" ]] || echo "$content" | /usr/bin/grep -q "\"message\""; then
+  if [[ -z "$content" ]] || echo "$content" | $GREP_CMD -q "\"message\""; then
     echo "Error: Failed to fetch directory: $path" >&2
     return 1
   fi
   
   # ファイルのパスとSHAを出力（タブ区切り）
-  echo "$content" | /usr/bin/jq -r '.[] | select(.type == "file") | "\(.path)\t\(.sha)"'
+  echo "$content" | $JQ_CMD -r '.[] | select(.type == "file") | "\(.path)\t\(.sha)"'
   
   # サブディレクトリを再帰的に処理
   local subdirs
-  subdirs=$(echo "$content" | /usr/bin/jq -r '.[] | select(.type == "dir") | .path')
+  subdirs=$(echo "$content" | $JQ_CMD -r '.[] | select(.type == "dir") | .path')
   
   for subdir in $subdirs; do
     fetch_directory "$subdir"
@@ -60,11 +65,11 @@ if [[ "$TYPE" == "directory" ]]; then
 elif [[ "$TYPE" == "file" ]]; then
   # 単一ファイルの場合もSHA情報を取得
   content=$(fetch_content "$PATH")
-  if [[ -z "$content" ]] || echo "$content" | /usr/bin/grep -q "\"message\""; then
+  if [[ -z "$content" ]] || echo "$content" | $GREP_CMD -q "\"message\""; then
     echo "Error: Failed to fetch file: $PATH" >&2
     exit 1
   fi
-  sha=$(echo "$content" | /usr/bin/jq -r '.sha')
+  sha=$(echo "$content" | $JQ_CMD -r '.sha')
   echo "$PATH	$sha"
 else
   echo "Error: Invalid type: $TYPE" >&2
