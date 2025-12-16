@@ -30,8 +30,7 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
     -H "Accept: application/vnd.github.v3.raw" \
     "$CONFIG_URL")
   
-  if [[ -z "$CONFIG_CONTENT" ]]; then
-    echo "Error: Failed to fetch config from template" >&2
+  if ! check_api_error "$CONFIG_CONTENT" "Fetching config from template"; then
     exit 1
   fi
   
