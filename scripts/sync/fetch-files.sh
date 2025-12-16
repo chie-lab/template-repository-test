@@ -1,0 +1,73 @@
+#!/bin/bash
+set -euo pipefail
+
+# 共通定数の読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/constants.sh"
+
+# 引数チェック
+if [[ $# -lt 4 ]]; then
+  echo "Usage: $0 <repo> <ref> <path> <type>" >&2
+  exit 1
+fi
+
+REPO="$1"
+REF="$2"
+PATH="$3"
+TYPE="$4"
+
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+
+if [[ -z "$GITHUB_TOKEN" ]]; then
+  echo "Error: GITHUB_TOKEN is not set"
+  exit 1
+fi
+
+# ファイル/ディレクトリの取得
+fetch_content() {
+  local path="$1"
+  local api_url="https://api.github.com/repos/$REPO/contents/$path?ref=$REF"
+  
+  curl_with_status_check "$api_url" "application/vnd.github.v3+json" "Fetching: $path"
+}
+
+# ディレクトリを再帰的に取得
+fetch_directory() {
+  local path="$1"
+  local content
+  
+  content=$(fetch_content "$path")
+  
+  if ! check_api_error "$content" "Fetching directory: $path"; then
+    return 1
+  fi
+  
+  # ファイルのパスとSHAを出力（タブ区切り）
+  echo "$content" | $JQ_CMD -r '.[] | select(.type == "file") | "\(.path)\t\(.sha)"'
+  
+  # サブディレクトリを再帰的に処理
+  local subdirs
+  subdirs=$(echo "$content" | $JQ_CMD -r '.[] | select(.type == "dir") | .path')
+  
+  for subdir in $subdirs; do
+    fetch_directory "$subdir"
+  done
+}
+
+# メイン処理
+if [[ "$TYPE" == "$TYPE_DIRECTORY" ]]; then
+  fetch_directory "$PATH"
+elif [[ "$TYPE" == "$TYPE_FILE" ]]; then
+  # 単一ファイルの場合もSHA情報を取得
+  content=$(fetch_content "$PATH")
+  
+  if ! check_api_error "$content" "Fetching file: $PATH"; then
+    exit 1
+  fi
+  
+  sha=$(echo "$content" | $JQ_CMD -r '.sha')
+  echo "$PATH	$sha"
+else
+  echo "Error: Invalid type: $TYPE" >&2
+  exit 1
+fi
