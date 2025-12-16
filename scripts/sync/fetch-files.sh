@@ -28,9 +28,7 @@ fetch_content() {
   local path="$1"
   local api_url="https://api.github.com/repos/$REPO/contents/$path?ref=$REF"
   
-  $CURL_CMD -s -H "Authorization: token $GITHUB_TOKEN" \
-    -H "Accept: application/vnd.github.v3+json" \
-    "$api_url"
+  curl_with_status_check "$api_url" "application/vnd.github.v3+json" "Fetching: $path"
 }
 
 # ディレクトリを再帰的に取得

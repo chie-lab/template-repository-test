@@ -25,18 +25,9 @@ fi
 # ファイルの内容を取得
 API_URL="https://api.github.com/repos/$REPO/contents/$FILE_PATH?ref=$REF"
 
-RESPONSE=$($CURL_CMD -s -w "\n%{http_code}" -H "Authorization: token $GITHUB_TOKEN" \
-  -H "Accept: application/vnd.github.v3.raw" \
-  "$API_URL")
+CONTENT=$(curl_with_status_check "$API_URL" "application/vnd.github.v3.raw" "Downloading file: $FILE_PATH")
 
-# HTTPステータスコードを取得（最終行）
-HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
-# レスポンスボディ（最終行以外）
-CONTENT=$(echo "$RESPONSE" | head -n -1)
-
-# ステータスコードチェック
-if [[ "$HTTP_CODE" != "200" ]]; then
-  echo "Error: Failed to download file: $FILE_PATH (HTTP $HTTP_CODE)" >&2
+if [[ $? -ne 0 ]]; then
   exit 1
 fi
 

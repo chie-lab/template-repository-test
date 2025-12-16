@@ -26,11 +26,9 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   # オーバーライドファイルがない場合、テンプレートから取得
   CONFIG_URL="https://api.github.com/repos/$TEMPLATE_REPO/contents/.github/sync-config.yml?ref=$TEMPLATE_BRANCH"
   
-  CONFIG_CONTENT=$($CURL_CMD -s -H "Authorization: token $GITHUB_TOKEN" \
-    -H "Accept: application/vnd.github.v3.raw" \
-    "$CONFIG_URL")
+  CONFIG_CONTENT=$(curl_with_status_check "$CONFIG_URL" "application/vnd.github.v3.raw" "Fetching config from template")
   
-  if ! check_api_error "$CONFIG_CONTENT" "Fetching config from template"; then
+  if [[ $? -ne 0 ]] || ! check_api_error "$CONFIG_CONTENT" "Fetching config from template"; then
     exit 1
   fi
   
